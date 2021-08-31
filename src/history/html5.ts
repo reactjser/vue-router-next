@@ -66,11 +66,13 @@ function useHistoryListeners(
   // can trigger twice
   let pauseState: HistoryLocation | null = null
 
+  // popState事件回调
   const popStateHandler: PopStateListener = ({
     state,
   }: {
     state: StateEntry | null
   }) => {
+    debugger
     const to = createCurrentLocation(base, location)
     const from: HistoryLocation = currentLocation.value
     const fromState: StateEntry = historyState.value
@@ -126,6 +128,7 @@ function useHistoryListeners(
     return teardown
   }
 
+  // beforeunload事件回调
   function beforeUnloadListener() {
     const { history } = window
     if (!history.state) return
@@ -143,7 +146,13 @@ function useHistoryListeners(
   }
 
   // setup the listeners and prepare teardown callbacks
+  // 需要注意的是调用history.pushState()或history.replaceState()不会触发popstate事件
+  // 只有在做出浏览器动作时，才会触发该事件，如用户点击浏览器的回退按钮
+  // 或者在Javascript代码中调用history.back()或者history.forward()方法
+  // https://developer.mozilla.org/zh-CN/docs/Web/API/Window/popstate_event
   window.addEventListener('popstate', popStateHandler)
+  // 当窗口即将被卸载（关闭）时,会触发该事件
+  // https://developer.mozilla.org/zh-CN/docs/Web/API/WindowEventHandlers/onbeforeunload
   window.addEventListener('beforeunload', beforeUnloadListener)
 
   return {
@@ -176,13 +185,19 @@ function buildState(
 function useHistoryStateNavigation(base: string) {
   const { history, location } = window
 
+  // 获取当前的location，这里面对hash模式和history模式分别处理了处理
+  const currentLocationRaw = createCurrentLocation(base, location)
+
   // private variables
   const currentLocation: ValueContainer<HistoryLocation> = {
-    value: createCurrentLocation(base, location),
+    value: currentLocationRaw,
   }
   const historyState: ValueContainer<StateEntry> = { value: history.state }
+
+  // 初始进入页面时，调用replaceState，修改当前历史记录实体
   // build current history entry as this is a fresh navigation
   if (!historyState.value) {
+    // 参数分别为：to, state, replace
     changeLocation(
       currentLocation.value,
       {
@@ -200,6 +215,7 @@ function useHistoryStateNavigation(base: string) {
     )
   }
 
+  // 这里利用了闭包的能力
   function changeLocation(
     to: HistoryLocation,
     state: StateEntry,
@@ -224,7 +240,11 @@ function useHistoryStateNavigation(base: string) {
     try {
       // BROWSER QUIRK
       // NOTE: Safari throws a SecurityError when calling this function 100 times in 30 seconds
+      // 这里调用原生API，参数说明：stateObj、title、url，参考以下文档
+      // https://developer.mozilla.org/zh-CN/docs/Web/API/History/replaceState
+      // https://developer.mozilla.org/zh-CN/docs/Web/API/History/pushState
       history[replace ? 'replaceState' : 'pushState'](state, '', url)
+      // 将状态对象存到`historyState`
       historyState.value = state
     } catch (err) {
       if (__DEV__) {
@@ -238,6 +258,7 @@ function useHistoryStateNavigation(base: string) {
   }
 
   function replace(to: HistoryLocation, data?: HistoryState) {
+    // 通过data，构建新的state
     const state: StateEntry = assign(
       {},
       history.state,
@@ -253,6 +274,7 @@ function useHistoryStateNavigation(base: string) {
     )
 
     changeLocation(to, state, true)
+    // 保存当前location的值
     currentLocation.value = to
   }
 
@@ -308,9 +330,16 @@ function useHistoryStateNavigation(base: string) {
  * @param base -
  */
 export function createWebHistory(base?: string): RouterHistory {
+  // hash模式的base在createWebHashHistory中处理过，如果不传base，这里拿到的是`/#`
+  // 如果是history模式，如果有base标签，则取base标签中href值上的path作为基础路径，否则，base值设为`/`
+  // 如果base不以`#`或`/`开头，则前面补上`/`
+  // 最后，去掉base后面的`/`
   base = normalizeBase(base)
 
+  // 调用hook，返回`{ location, state, push, replace }`格式的导航器对象
   const historyNavigation = useHistoryStateNavigation(base)
+  // 调用hook，返回`{ pauseListeners,listen,destroy }`格式的事件处理器对象
+  // 函数内部监听了`popstate`和`beforeunload`事件
   const historyListeners = useHistoryListeners(
     base,
     historyNavigation.state,

@@ -181,6 +181,7 @@ export function useLink(props: UseLinkOptions) {
 
 export const RouterLinkImpl = /*#__PURE__*/ defineComponent({
   name: 'RouterLink',
+  // 注意：这里定义的布尔值类型，如果不传递，则取false为值
   props: {
     to: {
       type: [String, Object] as PropType<RouteLocationRaw>,
@@ -197,12 +198,15 @@ export const RouterLinkImpl = /*#__PURE__*/ defineComponent({
     },
   },
 
+  // 暴露 useLink，https://github.com/vuejs/vue-router-next/pull/1002
   useLink,
 
   setup(props, { slots }) {
-    const link = reactive(useLink(props))
+    const linkRaw = useLink(props)
+    const link = reactive(linkRaw)
     const { options } = inject(routerKey)!
 
+    // 注意：这里elClass是响应式的
     const elClass = computed(() => ({
       [getLinkClass(
         props.activeClass,

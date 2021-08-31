@@ -21,7 +21,9 @@ export function createRouteRecordMatcher(
   parent: RouteRecordMatcher | undefined,
   options?: PathParserOptions
 ): RouteRecordMatcher {
-  const parser = tokensToParser(tokenizePath(record.path), options)
+  // 生成带有标记的path，标记为static/param/group类型
+  const tokenizedPath = tokenizePath(record.path)
+  const parser = tokensToParser(tokenizedPath, options)
 
   // warn against params with the same name
   if (__DEV__) {

@@ -63,6 +63,7 @@ export function createRouterMatcher(
   const matchers: RouteRecordMatcher[] = []
   const matcherMap = new Map<RouteRecordName, RouteRecordMatcher>()
   globalOptions = mergeOptions(
+    // 默认配置
     { strict: false, end: true, sensitive: false } as PathParserOptions,
     globalOptions
   )
@@ -77,16 +78,23 @@ export function createRouterMatcher(
     originalRecord?: RouteRecordMatcher
   ) {
     // used later on to remove by name
+    // 是否为内部添加初始路由的情况
     const isRootAdd = !originalRecord
+    // 标准化record对象
     const mainNormalizedRecord = normalizeRouteRecord(record)
     // we might be the child of an alias
+    // 定义此记录是否是另一个记录的别名。如果该记录是原始记录，则此属性为 undefined
     mainNormalizedRecord.aliasOf = originalRecord && originalRecord.record
     const options: PathParserOptions = mergeOptions(globalOptions, record)
     // generate an array of records to correctly handle aliases
-    const normalizedRecords: typeof mainNormalizedRecord[] = [
-      mainNormalizedRecord,
-    ]
+    // 用records数组处理存在别名的情况
+    const normalizedRecords: RouteRecordNormalized[] = [mainNormalizedRecord]
+    /**
+     * const routes = [{ path: '/', component: Homepage, alias: '/home' }]
+     * 将 / 别名为 /home，意味着当用户访问 /home 时，URL 仍然是 /home，但会被匹配为用户正在访问 /。
+     */
     if ('alias' in record) {
+      // 将alias统一为数组来处理
       const aliases =
         typeof record.alias === 'string' ? [record.alias] : record.alias!
       for (const alias of aliases) {
@@ -156,6 +164,7 @@ export function createRouterMatcher(
           removeRoute(record.name)
       }
 
+      // 处理嵌套路由的情况
       if ('children' in mainNormalizedRecord) {
         const children = mainNormalizedRecord.children
         for (let i = 0; i < children.length; i++) {
@@ -314,7 +323,11 @@ export function createRouterMatcher(
   }
 
   // add initial routes
+  // 添加初始路由
   routes.forEach(route => addRoute(route))
+
+  // console.log(matchers)
+  // console.log(matcherMap)
 
   return { addRoute, resolve, removeRoute, getRoutes, getRecordMatcher }
 }
@@ -342,18 +355,27 @@ export function normalizeRouteRecord(
   record: RouteRecordRaw
 ): RouteRecordNormalized {
   return {
+    // 路由记录的标准化路径。包括所有父级的 path。
     path: record.path,
+    // 如果路由是直接匹配的，那么重定向到哪里呢。重定向发生在所有导航守卫之前，并触发一个带有新目标位置的新导航。
     redirect: record.redirect,
+    // 路由记录的名称。如果什么都没提供，则为 undefined。
     name: record.name,
+    // 附在记录上的任意数据
     meta: record.meta || {},
+    // 定义此记录是否是另一个记录的别名。如果该记录是原始记录，则此属性为 undefined 。
     aliasOf: undefined,
+    // 当从其他地方进入此记录时，导航守卫会被应用
     beforeEnter: record.beforeEnter,
+    // 每个命名视图的 props 配置字典。如果没有，它将只包含一个名为 default 的属性。
     props: normalizeRecordProps(record),
+    // 当前路由的子路由记录。如果没有则为空数组。
     children: record.children || [],
     instances: {},
     leaveGuards: new Set(),
     updateGuards: new Set(),
     enterCallbacks: {},
+    // 命名视图的字典，如果没有，包含一个键为 default 的对象。
     components:
       'components' in record
         ? record.components || {}

@@ -348,11 +348,14 @@ export interface Router {
 }
 
 /**
+ * 创建路由实例，可以被Vue app通过use方法调用
  * Creates a Router instance that can be used by a Vue app.
  *
  * @param options - {@link RouterOptions}
  */
 export function createRouter(options: RouterOptions): Router {
+  // 返回`{ addRoute, resolve, removeRoute, getRoutes, getRecordMatcher }`格式的匹配器对象
+  // 闭包中保存了 matchers 和 matcherMap 变量
   const matcher = createRouterMatcher(options.routes, options)
   const parseQuery = options.parseQuery || originalParseQuery
   const stringifyQuery = options.stringifyQuery || originalStringifyQuery
@@ -1135,9 +1138,11 @@ export function createRouter(options: RouterOptions): Router {
 
   const go = (delta: number) => routerHistory.go(delta)
 
+  // 初始导航标记
   let started: boolean | undefined
   const installedApps = new Set<App>()
 
+  // 通过createRouter返回的路由对象，上面挂了一系列操作路由的方法，和app.use(xxx)时执行的install方法
   const router: Router = {
     currentRoute,
 
@@ -1163,10 +1168,14 @@ export function createRouter(options: RouterOptions): Router {
 
     install(app: App) {
       const router = this
+      // 全局注册 RouterLink 组件
       app.component('RouterLink', RouterLink)
+      // 全局注册 RouterView 组件
       app.component('RouterView', RouterView)
 
+      // 将 router 对象挂在 this.$router 上
       app.config.globalProperties.$router = router
+      // 将 currentRoute 对象挂在 this.$route 上，且使其可枚举
       Object.defineProperty(app.config.globalProperties, '$route', {
         enumerable: true,
         get: () => unref(currentRoute),
@@ -1199,15 +1208,21 @@ export function createRouter(options: RouterOptions): Router {
         reactiveRoute[key] = computed(() => currentRoute.value[key])
       }
 
+      // 共享 router 信息
       app.provide(routerKey, router)
+      // 共享 reactiveRoute 信息
       app.provide(routeLocationKey, reactive(reactiveRoute))
+      // 共享 currentRoute 信息
       app.provide(routerViewLocationKey, currentRoute)
 
       const unmountApp = app.unmount
+      // 可能有多个 app 实例的情况
       installedApps.add(app)
+      // 重写 app 的 unmount 方法
       app.unmount = function () {
         installedApps.delete(app)
         // the router is not attached to an app anymore
+        // 如果路由不再被挂载到任何app上，重置状态、移除事件监听
         if (installedApps.size < 1) {
           // invalidate the current navigation
           pendingLocation = START_LOCATION_NORMALIZED

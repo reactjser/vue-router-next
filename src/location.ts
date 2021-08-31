@@ -98,6 +98,7 @@ export function stringifyURL(
 }
 
 /**
+ * 移除路径中的base
  * Strips off the base from the beginning of a location.pathname in a non
  * case-sensitive way.
  *

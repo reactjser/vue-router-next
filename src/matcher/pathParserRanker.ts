@@ -122,6 +122,7 @@ export function tokensToParser(
   const options = assign({}, BASE_PATH_PARSER_OPTIONS, extraOptions)
 
   // the amount of scores is the same as the length of segments except for the root segment "/"
+  // 除了root segment的情况，score的数量与segments的长度相同
   const score: Array<number[]> = []
   // the regexp as a string
   let pattern = options.start ? '^' : ''
@@ -136,6 +137,22 @@ export function tokensToParser(
     if (options.strict && !segment.length) pattern += '/'
     for (let tokenIndex = 0; tokenIndex < segment.length; tokenIndex++) {
       const token = segment[tokenIndex]
+      /* PathScore权重计算表如下：
+        {
+          BonusCaseSensitive: 0.25,
+          BonusCustomRegExp: 10,
+          BonusOptional: -8,
+          BonusRepeatable: -20,
+          BonusStrict: 0.7,
+          BonusWildcard: -50,
+          Dynamic: 20,
+          Root: 90,
+          Segment: 40,
+          Static: 40,
+          SubSegment: 30,
+          _multiplier: 10,
+        }
+       */
       // resets the score if we are inside a sub segment /:a-other-:b
       let subSegmentScore: number =
         PathScore.Segment +
