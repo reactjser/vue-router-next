@@ -428,6 +428,7 @@ export function createRouter(options: RouterOptions): Router {
     // const objectLocation = routerLocationAsObject(rawLocation)
     // we create a copy to modify it later
     currentLocation = assign({}, currentLocation || currentRoute.value)
+    // 如果传递的是一个字符串，如 push('/home')
     if (typeof rawLocation === 'string') {
       const locationNormalized = parseURL(
         parseQuery,
@@ -638,6 +639,8 @@ export function createRouter(options: RouterOptions): Router {
     to: RouteLocationRaw | RouteLocation,
     redirectedFrom?: RouteLocation
   ): Promise<NavigationFailure | void | undefined> {
+    // to 可以是一个 字符串，比如 /users/posva#bio，也可以是一个对象
+    // 这里调用 resolve 解析
     const targetLocation: RouteLocation = (pendingLocation = resolve(to))
     const from = currentRoute.value
     const data: HistoryState | undefined = (to as RouteLocationOptions).state
@@ -731,6 +734,7 @@ export function createRouter(options: RouterOptions): Router {
           }
         } else {
           // if we fail we don't finalize the navigation
+          // navigate 函数处理路由守卫相关逻辑，实际 push 在这个函数里面实现
           failure = finalizeNavigation(
             toLocation as RouteLocationNormalizedLoaded,
             from,
