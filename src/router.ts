@@ -922,6 +922,7 @@ export function createRouter(options: RouterOptions): Router {
     if (isPush) {
       // on the initial navigation, we want to reuse the scroll position from
       // history state if it exists
+      // 更新浏览器的 URL 的记录
       if (replace || isFirstNavigation)
         routerHistory.replace(
           toLocation.fullPath,
@@ -936,6 +937,7 @@ export function createRouter(options: RouterOptions): Router {
     }
 
     // accept current navigation
+    // 更新当前的路径 currentRoute 的值
     currentRoute.value = toLocation
     handleScroll(toLocation, from, isPush, isFirstNavigation)
 
@@ -1110,6 +1112,7 @@ export function createRouter(options: RouterOptions): Router {
   function markAsReady(err?: any): void {
     if (ready) return
     ready = true
+    // 初始化侦听器
     setupListeners()
     readyHandlers
       .list()
@@ -1148,6 +1151,7 @@ export function createRouter(options: RouterOptions): Router {
 
   // 通过createRouter返回的路由对象，上面挂了一系列操作路由的方法，和app.use(xxx)时执行的install方法
   const router: Router = {
+    // 当前路径
     currentRoute,
 
     addRoute,
@@ -1170,6 +1174,7 @@ export function createRouter(options: RouterOptions): Router {
     onError: errorHandlers.add,
     isReady,
 
+    // 安装路由函数
     install(app: App) {
       const router = this
       // 全局注册 RouterLink 组件
@@ -1188,6 +1193,7 @@ export function createRouter(options: RouterOptions): Router {
       // this initial navigation is only necessary on client, on server it doesn't
       // make sense because it will create an extra unnecessary navigation and could
       // lead to problems
+      // 在浏览器端初始化导航
       if (
         isBrowser &&
         // used for the initial navigation client side to avoid pushing
@@ -1202,6 +1208,7 @@ export function createRouter(options: RouterOptions): Router {
         })
       }
 
+      // 路径变成响应式
       const reactiveRoute = {} as {
         [k in keyof RouteLocationNormalizedLoaded]: ComputedRef<
           RouteLocationNormalizedLoaded[k]
@@ -1212,16 +1219,17 @@ export function createRouter(options: RouterOptions): Router {
         reactiveRoute[key] = computed(() => currentRoute.value[key])
       }
 
-      // 共享 router 信息
+      // 全局注入 router: 通过 createRouter 创建的路由对象
       app.provide(routerKey, router)
-      // 共享 reactiveRoute 信息
+      // 全局注入 reactiveRoute: 响应式的路径对象
       app.provide(routeLocationKey, reactive(reactiveRoute))
-      // 共享 currentRoute 信息
+      // 全局注入 currentRoute: 当前路径
       app.provide(routerViewLocationKey, currentRoute)
 
       const unmountApp = app.unmount
       // 可能有多个 app 实例的情况
       installedApps.add(app)
+      // 应用卸载的时候，需要做一些路由清理工作
       // 重写 app 的 unmount 方法
       app.unmount = function () {
         installedApps.delete(app)

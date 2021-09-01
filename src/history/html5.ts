@@ -72,7 +72,6 @@ function useHistoryListeners(
   }: {
     state: StateEntry | null
   }) => {
-    debugger
     const to = createCurrentLocation(base, location)
     const from: HistoryLocation = currentLocation.value
     const fromState: StateEntry = historyState.value
@@ -98,6 +97,7 @@ function useHistoryListeners(
     // to be updated before triggering the listeners. Some kind of validation function would also
     // need to be passed to the listeners so the navigation can be accepted
     // call all listeners
+    // 遍历侦听器 listeners，执行每一个侦听器函数
     listeners.forEach(listener => {
       listener(currentLocation.value, from, {
         delta,
@@ -326,6 +326,7 @@ function useHistoryStateNavigation(base: string) {
 
 /**
  * Creates an HTML5 history. Most common history for single page applications.
+ * 返回 routerHistory 对象，作用：1. 路径切换 2. 监听路径的变化
  *
  * @param base -
  */
