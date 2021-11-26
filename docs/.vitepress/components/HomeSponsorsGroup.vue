@@ -9,7 +9,6 @@
       :title="sponsor.alt"
       target="_blank"
       rel="sponsored noopener"
-      :style="{ width: size + 'px' }"
       class="sponsor_wrapper"
     >
       <img
@@ -20,7 +19,7 @@
           'invert-colors'
         "
         :alt="sponsor.alt"
-        :style="{ width: size + 'px' }"
+        :style="{ height: size + 'px' }"
       />
     </a>
   </p>
@@ -29,19 +28,15 @@
 <script setup lang="ts">
 import sponsors from './sponsors.json'
 import { isDark } from '../theme/dark-theme'
-import { computed, defineProps } from 'vue'
-import type { PropType } from 'vue'
+import { computed } from 'vue'
 
-const props = defineProps({
-  name: {
-    type: String as PropType<'gold' | 'platinum' | 'silver' | 'bronze'>,
-    required: true,
-  },
-  size: {
-    type: [Number, String],
-    default: 140,
-  },
-})
+const props = withDefaults(
+  defineProps<{
+    name: 'gold' | 'platinum' | 'silver' | 'bronze'
+    size: number | string
+  }>(),
+  { size: 140 }
+)
 
 const list = computed(() =>
   sponsors[props.name.toLowerCase()].map(sponsor => ({
@@ -56,7 +51,6 @@ const list = computed(() =>
   padding: 5px;
   margin: 0 3px;
 
-  width: 100px;
   display: inline-block;
   text-decoration: none;
   vertical-align: middle;

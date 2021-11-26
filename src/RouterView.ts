@@ -13,6 +13,7 @@ import {
   ComponentCustomProps,
   watch,
   Slot,
+  VNode,
 } from 'vue'
 import {
   RouteLocationNormalized,
@@ -24,7 +25,7 @@ import {
   viewDepthKey,
   routerViewLocationKey,
 } from './injectionSymbols'
-import { assign } from './utils'
+import { assign, isBrowser } from './utils'
 import { warn } from './warning'
 import { isSameRouteRecord } from './location'
 
@@ -32,6 +33,11 @@ export interface RouterViewProps {
   name?: string
   // allow looser type for user facing api
   route?: RouteLocationNormalized
+}
+
+export interface RouterViewDevtoolsContext
+  extends Pick<RouteLocationMatched, 'path' | 'name' | 'meta'> {
+  depth: number
 }
 
 export const RouterViewImpl = /*#__PURE__*/ defineComponent({
@@ -141,6 +147,29 @@ export const RouterViewImpl = /*#__PURE__*/ defineComponent({
         })
       )
 
+      if (
+        (__DEV__ || __FEATURE_PROD_DEVTOOLS__) &&
+        isBrowser &&
+        component.ref
+      ) {
+        // TODO: can display if it's an alias, its props
+        const info: RouterViewDevtoolsContext = {
+          depth,
+          name: matchedRoute.name,
+          path: matchedRoute.path,
+          meta: matchedRoute.meta,
+        }
+
+        const internalInstances = Array.isArray(component.ref)
+          ? component.ref.map(r => r.i)
+          : [component.ref.i]
+
+        internalInstances.forEach(instance => {
+          // @ts-expect-error
+          instance.__vrv_devtools = info
+        })
+      }
+
       return (
         // pass the vnode to the slot as a prop.
         // h and <component :is="..."> both accept vnodes
@@ -162,12 +191,19 @@ function normalizeSlot(slot: Slot | undefined, data: any) {
 /**
  * Component to display the current route the user is at.
  */
-export const RouterView = RouterViewImpl as {
+export const RouterView = RouterViewImpl as unknown as {
   new (): {
     $props: AllowedComponentProps &
       ComponentCustomProps &
       VNodeProps &
       RouterViewProps
+
+    $slots: {
+      default: (arg: {
+        Component: VNode
+        route: RouteLocationNormalizedLoaded
+      }) => VNode[]
+    }
   }
 }
 

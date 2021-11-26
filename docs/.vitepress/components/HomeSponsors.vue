@@ -1,16 +1,16 @@
 <template>
   <div class="sponsors_outer">
     <div>
-      <HomeSponsorsGroup v-if="sponsors.platinum" name="Platinum" size="160" />
+      <HomeSponsorsGroup v-if="sponsors.platinum" name="Platinum" size="96" />
 
-      <HomeSponsorsGroup v-if="sponsors.gold" name="Gold" size="140" />
+      <HomeSponsorsGroup v-if="sponsors.gold" name="Gold" size="48" />
 
-      <HomeSponsorsGroup v-if="sponsors.silver" name="Silver" size="120" />
+      <HomeSponsorsGroup v-if="sponsors.silver" name="Silver" size="24" />
 
       <a
         class="become-sponsor button white"
         href="https://github.com/sponsors/posva"
-        >{{ translations[$siteByRoute.themeConfig.lang] || translations.en }}</a
+        >{{ translations[site.lang] || translations.en }}</a
       >
     </div>
   </div>
@@ -19,6 +19,9 @@
 <script setup>
 import HomeSponsorsGroup from './HomeSponsorsGroup.vue'
 import sponsors from './sponsors.json'
+import { useData } from 'vitepress'
+
+const { site } = useData()
 
 const translations = {
   'en-US': 'Become a Sponsor!',
